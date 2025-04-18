@@ -7,7 +7,8 @@ A modern e-commerce web application built with Next.js, React, and Supabase.
 - User authentication with Supabase
 - Product browsing and searching
 - Shopping cart with local storage persistence
-- Checkout process with shipping and payment
+- Checkout process with shipping and payment with Razor Pay
+- Admin Dashboard
 - Responsive design with Tailwind CSS
 
 ## Tech Stack
