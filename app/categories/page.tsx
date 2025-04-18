@@ -3,16 +3,17 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getCategories } from '@/lib/supabase';
+import { FALLBACK_CATEGORIES } from '@/lib/fallback-data';
 
-// Static fallback categories
-export const FALLBACK_CATEGORIES = [
-  { id: 1, name: 'Electronics', image_url: 'https://via.placeholder.com/800x600/3498db/ffffff?text=Electronics' },
-  { id: 2, name: 'Clothing', image_url: 'https://via.placeholder.com/800x600/e74c3c/ffffff?text=Fashion' },
-  { id: 3, name: 'Home & Kitchen', image_url: 'https://via.placeholder.com/800x600/27ae60/ffffff?text=Home+Kitchen' },
-];
+// Define the Category type
+interface Category {
+  id: number;
+  name: string;
+  image_url?: string;
+}
 
 export default function CategoriesPage() {
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,22 +25,25 @@ export default function CategoriesPage() {
         setError(null);
         
         // Fetch categories with timeout
-        const categoriesData = await Promise.race([
-          getCategories(),
-          new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Categories fetch timeout')), 5000)
-          )
-        ]).catch(err => {
+        let categoriesData: Category[];
+        try {
+          categoriesData = await Promise.race([
+            getCategories() as Promise<Category[]>,
+            new Promise<Category[]>((_, reject) => 
+              setTimeout(() => reject(new Error('Categories fetch timeout')), 5000)
+            )
+          ]);
+        } catch (err) {
           console.error('Error fetching categories:', err);
-          return FALLBACK_CATEGORIES;
-        });
+          categoriesData = FALLBACK_CATEGORIES as Category[];
+        }
         
         console.log(`Fetched ${categoriesData.length} categories`);
         setCategories(categoriesData);
       } catch (error: any) {
         console.error('Error in fetchCategories:', error);
         setError(error.message || 'Failed to load categories');
-        setCategories(FALLBACK_CATEGORIES);
+        setCategories(FALLBACK_CATEGORIES as Category[]);
       } finally {
         setIsLoading(false);
       }
@@ -57,7 +61,7 @@ export default function CategoriesPage() {
         setCategories(categoriesData);
       } catch (error: any) {
         setError(error.message || 'Failed to load categories');
-        setCategories(FALLBACK_CATEGORIES);
+        setCategories(FALLBACK_CATEGORIES as Category[]);
       } finally {
         setIsLoading(false);
       }

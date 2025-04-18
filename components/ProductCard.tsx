@@ -21,9 +21,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
   // Function to format price with commas and two decimal places
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-IN', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'INR',
+      maximumFractionDigits: 0 // No decimal places for INR
     }).format(price);
   };
 

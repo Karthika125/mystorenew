@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { CartProvider } from '@/context/CartContext';
 import { AuthProvider } from '@/context/AuthContext';
+import AdminProvider from '@/context/AdminContext';
 import Layout from '@/components/Layout';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -21,11 +22,13 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <AuthProvider>
-          <CartProvider>
-            <Layout>
-              {children}
-            </Layout>
-          </CartProvider>
+          <AdminProvider>
+            <CartProvider>
+              <Layout>
+                {children}
+              </Layout>
+            </CartProvider>
+          </AdminProvider>
         </AuthProvider>
       </body>
     </html>

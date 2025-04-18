@@ -65,25 +65,69 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       } catch (error) {
         console.error('Error during auth initialization:', error);
       } finally {
-        setIsLoading(false);
+        // Mark initialization as complete
         setAuthInitialized(true);
+        setIsLoading(false);
       }
     };
 
+    // Start initialization immediately without any delays
     initAuth();
 
-    // Set up auth change listener
+    // Set up auth change listener with improved handling
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event);
-        if (session) {
-          const { data: userData } = await supabase.auth.getUser();
-          console.log('User authenticated:', userData?.user?.id);
-          setUser(userData?.user || null);
-        } else {
-          console.log('User signed out');
-          setUser(null);
+        console.log('🔐 Auth state changed:', event, 'Session exists:', !!session);
+        
+        // Check if we're in a reload prevention state
+        const currentTime = new Date().getTime();
+        const lastStateUpdate = localStorage.getItem('auth_state_update');
+        const preventAutoRefresh = lastStateUpdate && (currentTime - parseInt(lastStateUpdate)) < 2000;
+        
+        if (preventAutoRefresh) {
+          console.log('⚠️ Skipping auth state update to prevent loops');
+          return;
         }
+        
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          if (session) {
+            try {
+              const { data: userData } = await supabase.auth.getUser();
+              if (userData?.user) {
+                console.log('👤 User authenticated:', userData.user.id);
+                
+                // Record this state update timestamp
+                localStorage.setItem('auth_state_update', currentTime.toString());
+                
+                // Force immediate UI update
+                setUser({...userData.user});
+                
+                // Store auth status in localStorage for recovery
+                localStorage.setItem('mystore_auth_status', 'authenticated');
+                localStorage.setItem('mystore_user_id', userData.user.id);
+                localStorage.setItem('mystore_user_email', userData.user.email || '');
+              } else {
+                console.warn('⚠️ No user data found in auth response');
+              }
+            } catch (error) {
+              console.error('❌ Error retrieving user data:', error);
+            }
+          } else {
+            console.warn('⚠️ SIGNED_IN event but no session');
+          }
+        } else if (event === 'SIGNED_OUT') {
+          console.log('👋 User signed out');
+          
+          // Record this state update timestamp
+          localStorage.setItem('auth_state_update', currentTime.toString());
+          
+          setUser(null);
+          localStorage.removeItem('mystore_auth_status');
+          localStorage.removeItem('mystore_user_id');
+          localStorage.removeItem('mystore_user_email');
+          localStorage.removeItem('reload_attempt');
+        }
+        
         setIsLoading(false);
       }
     );
@@ -111,8 +155,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       if (data.user) {
         console.log('Sign in successful for:', data.user.id);
+        
+        // Immediately update user state with a force refresh to trigger rerender
+        setUser({...data.user});
+        
+        // Also store auth status in localStorage for recovery
+        localStorage.setItem('mystore_auth_status', 'authenticated');
+        
         toast.success('Signed in successfully!');
-        setUser(data.user);
+        return { user: data.user };
       }
     } catch (error: any) {
       console.error('Unexpected error during sign in:', error);

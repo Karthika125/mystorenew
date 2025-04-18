@@ -5,15 +5,21 @@ import { useParams } from 'next/navigation';
 import { getProducts } from '@/lib/supabase';
 import ProductCard from '@/components/ProductCard';
 import { Product } from '@/context/CartContext';
-import { FALLBACK_CATEGORIES } from '../page';
-import { FALLBACK_PRODUCTS } from '@/app/page';
+import { FALLBACK_CATEGORIES, FALLBACK_PRODUCTS } from '@/lib/fallback-data';
+
+// Define Category type to ensure type safety
+interface Category {
+  id: number;
+  name: string;
+  image_url?: string;
+}
 
 export default function CategoryPage() {
   const params = useParams();
   const categoryId = typeof params.id === 'string' ? Number(params.id) : undefined;
   
   const [products, setProducts] = useState<Product[]>([]);
-  const [category, setCategory] = useState<any>(null);
+  const [category, setCategory] = useState<Category | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,35 +33,38 @@ export default function CategoryPage() {
         setError(null);
         
         // Find category from fallback list if needed
-        const fallbackCategory = FALLBACK_CATEGORIES.find(c => c.id === categoryId);
+        const fallbackCategory = FALLBACK_CATEGORIES.find(c => c.id === categoryId) as Category | undefined;
         if (fallbackCategory) {
           setCategory(fallbackCategory);
         }
         
         // Fetch products with timeout
-        const productsData = await Promise.race([
-          getProducts(categoryId),
-          new Promise<Product[]>((_, reject) => 
-            setTimeout(() => reject(new Error('Products fetch timeout')), 5000)
-          )
-        ]).catch(err => {
+        let productsData: Product[];
+        try {
+          productsData = await Promise.race([
+            getProducts(categoryId) as Promise<Product[]>,
+            new Promise<Product[]>((_, reject) => 
+              setTimeout(() => reject(new Error('Products fetch timeout')), 5000)
+            )
+          ]);
+        } catch (err) {
           console.error('Error fetching category products:', err);
           // Return filtered fallback products for this category
-          return FALLBACK_PRODUCTS.filter(p => p.category_id === categoryId);
-        });
+          productsData = FALLBACK_PRODUCTS.filter(p => p.category_id === categoryId) as Product[];
+        }
         
         console.log(`Fetched ${productsData.length} products for category ${categoryId}`);
         setProducts(productsData);
         
         // Set category from the first product's category info if available
         if (productsData.length > 0 && productsData[0].categories) {
-          setCategory(productsData[0].categories);
+          setCategory(productsData[0].categories as Category);
         }
       } catch (error: any) {
         console.error('Error in fetchCategoryProducts:', error);
         setError(error.message || `Failed to load products for category ${categoryId}`);
         // Use filtered fallback data
-        setProducts(FALLBACK_PRODUCTS.filter(p => p.category_id === categoryId));
+        setProducts(FALLBACK_PRODUCTS.filter(p => p.category_id === categoryId) as Product[]);
       } finally {
         setIsLoading(false);
       }
@@ -75,7 +84,7 @@ export default function CategoryPage() {
         setProducts(productsData);
       } catch (error: any) {
         setError(error.message || `Failed to load products for category ${categoryId}`);
-        setProducts(FALLBACK_PRODUCTS.filter(p => p.category_id === categoryId));
+        setProducts(FALLBACK_PRODUCTS.filter(p => p.category_id === categoryId) as Product[]);
       } finally {
         setIsLoading(false);
       }

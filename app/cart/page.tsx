@@ -14,9 +14,10 @@ export default function CartPage() {
 
   // Function to format price with commas and two decimal places
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-IN', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'INR',
+      maximumFractionDigits: 0 // No decimal places for INR
     }).format(price);
   };
 
@@ -40,11 +41,21 @@ export default function CartPage() {
             <h2 className="text-2xl font-semibold text-gray-700">Your cart is empty</h2>
             <p className="text-gray-500 mt-2">Looks like you haven't added anything to your cart yet.</p>
           </div>
-          <Link href="/products">
-            <Button variant="primary" size="lg">
-              Start Shopping
-            </Button>
-          </Link>
+          <div className="flex flex-col space-y-3">
+            <Link href="/products">
+              <Button variant="primary" size="lg" fullWidth>
+                Start Shopping
+              </Button>
+            </Link>
+            
+            {/* EMERGENCY FIX: Direct checkout button even with empty cart */}
+            <button 
+              onClick={() => window.location.href = '/emergency-checkout'}
+              className="w-full py-2 text-sm text-blue-600 hover:text-blue-800 transition-colors duration-200"
+            >
+              Use Emergency Checkout
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -195,16 +206,18 @@ export default function CartPage() {
               size="lg"
               rightIcon={<FiArrowRight />}
               fullWidth
-              onClick={() => window.location.href = user ? '/checkout' : '/signin?redirect=/checkout'}
+              onClick={() => {
+                // EMERGENCY FIX: Use emergency checkout page instead
+                console.log('EMERGENCY CHECKOUT ACCESS FROM CART');
+                window.location.href = '/emergency-checkout';
+              }}
             >
-              {user ? 'Proceed to Checkout' : 'Sign In to Checkout'}
+              Use Emergency Checkout
             </Button>
             
-            {!user && (
-              <p className="text-sm text-gray-500 mt-4 text-center">
-                You need to be signed in to complete your purchase.
-              </p>
-            )}
+            <p className="text-sm text-red-500 mt-2 text-center">
+              We're experiencing technical issues. Please use our emergency checkout option.
+            </p>
             
             <div className="mt-6 text-xs text-gray-500">
               <p>We accept the following payment methods:</p>
